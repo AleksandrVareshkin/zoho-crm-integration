@@ -65,9 +65,9 @@ class ZohoService
         );
         $response = $client->post('https://accounts.zoho.eu/oauth/v2/token', [
             'form_params' => [
-                'refresh_token' => env('ZOHO_REFRESH_TOKEN'),
-                'client_id' => env('ZOHO_CLIENT_ID'),
-                'client_secret' => env('ZOHO_CLIENT_SECRET'),
+                'refresh_token' => config('zoho.refresh_token'),
+                'client_id' => config('zoho.client_id'),
+                'client_secret' => config('zoho.client_secret'),
                 'grant_type' => 'refresh_token',
             ],
         ]);

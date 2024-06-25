@@ -10,15 +10,15 @@
             <div class="mb-3 position-relative">
                 <label class="form-label">Deal Stage:</label>
                 <select v-model="formData.deal_stage" :class="{'is-invalid': errors['deal_stage']}" class="form-select" required>
-                    <option value="Prospecting">Qualification</option>
-                    <option value="Qualification">Needs Analysis</option>
-                    <option value="Needs Analysis">Value Proposition</option>
-                    <option value="Value Proposition">Identify Decision Makers</option>
-                    <option value="Identify Decision Makers">Proposal/Price Quote</option>
-                    <option value="Proposal/Price Quote">Negotiation/Review</option>
-                    <option value="Negotiation/Review">Closed Won</option>
-                    <option value="Closed Won">Closed Lost</option>
-                    <option value="Closed Lost">Closed Lost to Competition</option>
+                    <option value="Qualification">Qualification</option>
+                    <option value="Needs Analysis">Needs Analysis</option>
+                    <option value="Value Proposition">Value Proposition</option>
+                    <option value="Identify Decision Makers">Identify Decision Makers</option>
+                    <option value="Proposal/Price Quote">Proposal/Price Quote</option>
+                    <option value="Negotiation/Review">Negotiation/Review</option>
+                    <option value="Closed Won">Closed Won</option>
+                    <option value="Closed Lost">Closed Lost</option>
+                    <option value="Closed Lost to Competition">Closed Lost to Competition</option>
                 </select>
             </div>
             <div class="mb-3 position-relative">

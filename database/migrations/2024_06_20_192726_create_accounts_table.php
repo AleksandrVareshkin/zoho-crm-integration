@@ -14,12 +14,11 @@ return new class extends Migration {
             $table->id();
             $table->string('zoho_account_id')->unique();
             $table->string('account_name');
-            $table->string('account_website');
-            $table->string('account_phone');
+            $table->string('account_website')->nullable();
+            $table->string('account_phone')->nullable();
             $table->timestamps();
         });
     }
-
 
     /**
      * Reverse the migrations.

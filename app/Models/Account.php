@@ -9,10 +9,10 @@ class Account extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'zoho_account_id',
-        'account_name',
-        'account_website',
-        'account_phone',
-    ];
+    protected $fillable = ['zoho_account_id', 'account_name', 'account_website', 'account_phone'];
+
+    public function deals()
+    {
+        return $this->hasMany(Deal::class);
+    }
 }

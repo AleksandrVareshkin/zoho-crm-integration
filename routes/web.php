@@ -17,3 +17,6 @@ use App\Http\Controllers\ZohoController;
 
 Route::get('/form', [ZohoController::class, 'showForm']);
 Route::post('/form/submit', [ZohoController::class, 'submitForm']);
+Route::get('/auth-form', [ZohoController::class, 'authForm']);
+Route::post('/auth-submit', [ZohoController::class, 'authSubmit'])->name('auth-submit');
+

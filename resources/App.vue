@@ -5,11 +5,13 @@
 <script>
 
 import ZohoForm from './js/components/ZohoForm.vue';
+import AuthForm from "./js/components/AuthForm.vue";
 export default {
     name: 'App',
 
     components: {
-        ZohoForm
+        ZohoForm,
+        AuthForm
     },
 
 }

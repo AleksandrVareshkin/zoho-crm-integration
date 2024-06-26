@@ -9,11 +9,29 @@ use App\Models\Account;
 
 class ZohoController extends Controller
 {
-    public function showForm()
+    public function showForm(ZohoService $zohoService)
     {
-        return view('layouts.app');
+        $refreshToken = $zohoService->getStoredRefreshToken();
+
+        if (!$refreshToken) {
+            return redirect('/auth-form');
+        } else {
+            return redirect('/form');
+        }
     }
 
+    public function authForm()
+    {
+        return redirect('auth-form');
+    }
+
+
+    public function authSubmit(Request $request, ZohoService $zohoService)
+    {
+        $clientId = $request->input('client_id');
+        $url = $zohoService->getAuthUrl($clientId);
+        return redirect($url);
+    }
 
     public function submitForm(Request $request, ZohoService $zohoService)
     {
@@ -27,7 +45,26 @@ class ZohoController extends Controller
 
         $formData = $validatedRequest['form_data'];
 
-        [$zohoDealId, $zohoAccountId] = $zohoService->handleZohoResponse($validatedRequest['form_data']);
+        $payloadAccount = [
+            [
+                'Account_Name' => $formData['account_name'],
+                'Website' => $formData['account_website'],
+                'Phone' => $formData['account_phone'],
+            ]
+        ];
+
+        $zohoAccountId = $zohoService->createRecord($payloadAccount, 'Accounts');
+
+        $payloadDeal = [
+            [
+                'Account_Name' => $formData['account_name'],
+                'Deal_Name' => $formData['deal_name'],
+                'Stage' => $formData['deal_stage'],
+                'account_id' => $zohoAccountId,
+            ]
+        ];
+
+        $zohoDealId = $zohoService->createRecord($payloadDeal, 'Deals');
 
         $account = Account::create([
             'zoho_account_id' => $zohoAccountId,

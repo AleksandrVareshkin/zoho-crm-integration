@@ -67,7 +67,7 @@ export default {
             this.errors = {};
             this.message = '';
             try {
-                const response = await axios.post('http://127.0.0.1:8000/form/submit', { form_data: this.formData });
+                const response = await axios.post('/form/submit', { form_data: this.formData });
                 if (response.data.status === 'success') {
                     this.message = 'Deal and Account created successfully!';
                     this.messageType = 'alert-success';

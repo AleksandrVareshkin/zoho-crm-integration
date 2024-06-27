@@ -3,34 +3,60 @@
 namespace App\Http\Controllers;
 
 use App\Service\ZohoService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\Deal;
 use App\Models\Account;
+use App\Models\ZohoUser;
+use Illuminate\Support\Facades\Cache;
 
 class ZohoController extends Controller
 {
     public function showForm(ZohoService $zohoService)
     {
-        $refreshToken = $zohoService->getStoredRefreshToken();
-
+        $clientId = Cache::get('client_id');
+        $refreshToken = $zohoService->getStoredRefreshToken($clientId);
         if (!$refreshToken) {
             return redirect('/auth-form');
         } else {
-            return redirect('/form');
+            return view('layouts.app');
         }
     }
 
-    public function authForm()
+    public function authCallback(Request $request, ZohoService $zohoService)
     {
-        return redirect('auth-form');
-    }
+        $data = $request->all();
+        $code = $data['code'];
+        $clientId = Cache::get('client_id');
+        $user = ZohoUser::where('client_id', $clientId)->first();
+        $client_secret = $user->client_secret;
+        $refreshToken = $zohoService->getRefreshToken($code, $clientId, $client_secret);
+        $updRefreshResult = $user->update(['refresh_token' => $refreshToken]);
+        if ($updRefreshResult) {
+            $accessToken = $zohoService->getAccessToken($refreshToken, $clientId, $client_secret);
+            $user->update(['access_token' => $accessToken, 'access_token_expires_at' => now()->addHours(1)->timestamp]);
+        }
 
+        return redirect('/form');
+    }
 
     public function authSubmit(Request $request, ZohoService $zohoService)
     {
-        $clientId = $request->input('client_id');
+        $data = $request->all();
+        $clientId = $data['form_data']['client_id'];
+        Cache::put('client_id', $clientId, now()->addMinute('15'));
+        $clientSecret = $data['form_data']['client_secret'];
         $url = $zohoService->getAuthUrl($clientId);
-        return redirect($url);
+
+        ZohoUser::updateOrCreate(
+            [
+                'client_id' => $clientId,
+            ],
+            ['client_id' => $clientId,
+                'client_secret' => $clientSecret
+            ]
+        );
+        return $url;
     }
 
     public function submitForm(Request $request, ZohoService $zohoService)

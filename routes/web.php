@@ -17,6 +17,9 @@ use App\Http\Controllers\ZohoController;
 
 Route::get('/form', [ZohoController::class, 'showForm']);
 Route::post('/form/submit', [ZohoController::class, 'submitForm']);
-Route::get('/auth-form', [ZohoController::class, 'authForm']);
+Route::get('/auth-form', function () {
+    return view('layouts.app');
+})->name('auth-form');
 Route::post('/auth-submit', [ZohoController::class, 'authSubmit'])->name('auth-submit');
+Route::get('/zoho/oauth/callback', [ZohoController::class, 'authCallback']);
 

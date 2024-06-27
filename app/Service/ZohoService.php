@@ -2,75 +2,32 @@
 
 namespace App\Service;
 
-use App\Models\ZohoUser;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Support\Facades\Cache;
+use App\Models\ZohoUser;
+use Illuminate\Support\Facades\Log;
 
 class ZohoService
 {
     private $client;
-    private string $clientId;
-    private string $code;
+    private string | null $clientId;
     private string $clientSecret;
     private string $redirectUri;
 
-    public function __construct()
+    public function __construct($clientId = null)
     {
-//        $this->clientId = config('zoho.client_id');
-//        $this->clientSecret = config('zoho.client_secret');
         $this->redirectUri = config('zoho.redirect_uri');
-
-//        $accessToken = Cache::remember('access_token', now()->addMinutes(60), function () {
-//            $refreshToken = $this->getStoredRefreshToken();
-//            if (!$refreshToken) {
-//                $refreshToken = $this->getRefreshToken();
-//                $this->storeRefreshToken($refreshToken);
-//            }
-//            return $this->getAccessToken($refreshToken);
-//        });
-
-//        $this->client = new Client([
-//            'base_uri' => 'https://www.zohoapis.eu/crm/v2/',
-//            'verify' => false,
-//            'headers' => ['Authorization' => 'Zoho-oauthtoken ' . $accessToken],
-//        ]);
+        $this->clientId = $clientId;
     }
 
-//    public function handleZohoResponse($validatedResponse)
-//    {
-//        $accountResponse = $this->client->post('Accounts', [
-//            'json' => [
-//                'data' => [
-//                    [
-//                        'Account_Name' => $validatedResponse['account_name'],
-//                        'Website' => $validatedResponse['account_website'],
-//                        'Phone' => $validatedResponse['account_phone'],
-//                    ]
-//                ]
-//            ]
-//        ]);
-//
-//        $accountData = json_decode($accountResponse->getBody(), true);
-//        $zohoAccountId = $accountData['data'][0]['details']['id'];
-//
-//        $dealResponse = $this->client->post('Deals', [
-//            'json' => [
-//                'data' => [
-//                    [
-//                        'Deal_Name' => $validatedResponse['deal_name'],
-//                        'Stage' => $validatedResponse['deal_stage'],
-//                        'Account_Name' => $zohoAccountId,
-//                    ]
-//                ]
-//            ]
-//        ]);
-//
-//        $dealData = json_decode($dealResponse->getBody(), true);
-//        $zohoDealId = $dealData['data'][0]['details']['id'];
-//
-//        return [$zohoDealId, $zohoAccountId];
-//    }
+    public function createClient(){
+        $accessToken = $this->getValidAccessToken();
+        $this->client = new Client([
+            'base_uri' => 'https://www.zohoapis.eu/crm/v2/',
+            'verify' => false,
+            'headers' => ['Authorization' => 'Zoho-oauthtoken ' . $accessToken],
+        ]);
+    }
 
     /**
      * @param array $payload
@@ -78,8 +35,9 @@ class ZohoService
      * @return string|null
      * @throws GuzzleException
      */
-    public function createRecord(array $payload, string $moduleName) : ?string
+    public function createRecord(array $payload, string $moduleName): ?string
     {
+        $this->createClient();
         $recordResponse = $this->client->post($moduleName, [
             'json' => [
                 'data' => $payload
@@ -89,48 +47,72 @@ class ZohoService
         $recordData = json_decode($recordResponse->getBody(), true);
         if (isset($recordData['data'][0])) {
             return $recordData['data'][0]['details']['id'];
-        }else{
+        } else {
             return null;
         }
     }
 
-    public function getStoredRefreshToken()
+    public function getValidAccessToken(){
+        if($this->clientId){
+            $user = ZohoUser::where(['client_id' => $this->clientId])->first();
+        }
+        else{
+            $user = ZohoUser::first();
+        }
+        if($user->access_token_expires_at > now()->timestamp){
+            return $user->access_token;
+        }
+        else{
+            $refreshToken= $user->refresh_token;
+            $clientId = $user->client_id;
+            $clientSecret = $user->client_secret;
+            $accessToken = $this->getAccessToken($refreshToken, $clientId, $clientSecret);
+            $user->update(['access_token_expires_at' => now()->timestamp + 3600, 'access_token' => $accessToken]);
+            return $accessToken;
+        }
+
+    }
+    public function getStoredRefreshToken(string|null $clientId = null)
     {
-        $tokenRecord = ZohoUser::latest()->first();
-        return $tokenRecord ? $tokenRecord->refresh_token : null;
+        if ($clientId) {
+            $user = ZohoUser::where(['client_id' => $clientId])->first();
+        } else {
+            $user = ZohoUser::first();
+        }
+        if(!$user){
+            return null;
+        }
+        $this->clientId = $user->client_id;
+        $this->clientSecret = $user->client_secret;
+        return $user->refresh_token ?? null;
     }
 
-    private function storeRefreshToken($refreshToken)
-    {
-        ZohoUser::create(['refresh_token' => $refreshToken]);
-    }
-
-    private function getRefreshToken()
+    public function getRefreshToken($code, $clientId, $clientSecret)
     {
         $client = new Client(['verify' => false]);
         $response = $client->post('https://accounts.zoho.eu/oauth/v2/token', [
             'form_params' => [
-                'client_id' => $this->clientId,
-                'client_secret' => $this->clientSecret,
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
                 'redirect_uri' => $this->redirectUri,
-                'code' => $this->code,
+                'code' => $code,
                 'grant_type' => 'authorization_code',
             ],
         ]);
 
         $data = json_decode($response->getBody(), true);
-        dd($data);
+
         return $data['refresh_token'];
     }
 
-    private function getAccessToken($refreshToken)
+    public function getAccessToken($refreshToken, $clientId, $clientSecret)
     {
         $client = new Client(['verify' => false]);
         $response = $client->post('https://accounts.zoho.eu/oauth/v2/token', [
             'form_params' => [
                 'refresh_token' => $refreshToken,
-                'client_id' => $this->clientId,
-                'client_secret' => $this->clientSecret,
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
                 'grant_type' => 'refresh_token',
             ],
         ]);
@@ -138,23 +120,6 @@ class ZohoService
         $data = json_decode($response->getBody(), true);
         return $data['access_token'];
     }
-
-//    public function getCode()
-//    {
-//        $codeClient = new Client();
-//        $response = $codeClient->get('https://accounts.zoho.eu/oauth/v2/auth?scope=ZohoCRM.modules.ALL&client_id=' . $this->clientId . '&response_type=code&access_type=offline&redirect_uri=' . $this->redirectUri);
-//
-//        var_dump($response->getBody());
-//        $locationHeader = $response->getHeader('Location');
-//
-//        if (!empty($locationHeader)) {
-//            $this->code = $locationHeader[0];
-//        } else {
-//            throw new \Exception('Location header not found in response');
-//        }
-//
-//        return $this->code;
-//    }
 
     public function getAuthUrl(
         string $clientId,

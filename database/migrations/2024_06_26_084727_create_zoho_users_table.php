@@ -10,8 +10,8 @@ class CreateZohoUsersTable extends Migration
     {
         Schema::create('zoho_users', function (Blueprint $table) {
             $table->id();
-            $table->string('client_id');
-            $table->string('client_secret');
+            $table->string('client_id')->nullable();
+            $table->string('client_secret')->nullable();
             $table->string('refresh_token')->nullable();
             $table->string('access_token')->nullable();
             $table->string('access_token_expires_at')->nullable();

@@ -1,6 +1,6 @@
 <template>
     <div class="container mt-5">
-        <h1 class="text-center mb-4">Client id not found, please input credentials for web aplication</h1>
+        <h1 class="text-center mb-4">Client id not found, please input credentials for web application</h1>
         <form @submit.prevent="submitForm" class="needs-validation position-relative" novalidate>
             <div class="mb-3 position-relative">
                 <label class="form-label">Client ID:</label>
@@ -33,12 +33,16 @@ export default {
         }
     },
 
+    name: 'AuthForm',
+
     methods: {
         async submitForm() {
             this.errors = {};
             this.message = '';
             try {
-                const response = await axios.post('http://127.0.0.1:8000/auth-submit', { form_data: this.formData });
+                const response = await axios.post('/auth-submit', { form_data: this.formData });
+                console.log(response.data);
+                window.location.href = response.data;
                 if (response.data.status === 'success') {
                     this.message = 'Credentials saved successfully!';
                     this.messageType = 'alert-success';
@@ -72,11 +76,6 @@ export default {
 .container {
     max-width: 600px;
 }
-.error-message {
-    color: red;
-    font-size: 0.7em;
-    top: 100%;
-}
 .alert {
     padding: 1rem;
 }
@@ -87,13 +86,5 @@ export default {
 }
 .position-relative {
     position: relative;
-}
-.position-absolute {
-    position: absolute;
-    top: 100%;
-    left: 0;
-}
-.is-invalid {
-    border-color: #dc3545;
 }
 </style>
